@@ -1,4 +1,5 @@
 {
+  "id": "/",
   "name": "VidMood - Mood-Based Video Feed",
   "short_name": "VidMood",
   "description": "TikTok clone for mood-based video recommendations",
@@ -20,6 +21,22 @@
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/screenshot-1920x1080.png",
+      "sizes": "1920x1080",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "VidMood main screen showing mood-based video feed"
+    },
+    {
+      "src": "/screenshot-1080x1920.png",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "VidMood mobile view with mood selector"
     }
   ],
   "categories": [
