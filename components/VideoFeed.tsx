@@ -5,47 +5,40 @@ import VideoCard from './VideoCard';
 import MoodSelector from './MoodSelector';
 import VideoUpload from './VideoUpload';
 import NavigationMenu from './NavigationMenu';
+import RealTimeContent from './RealTimeContent';
 import { recommendationEngine, Video } from '@/services/recommendationEngine';
 
 export default function VideoFeed() {
-  const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
-  const [isMuted, setIsMuted] = useState(true);
   const [currentMood, setCurrentMood] = useState<string | null>(null);
   const [videos, setVideos] = useState<Video[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [touchStart, setTouchStart] = useState(0);
   const [touchEnd, setTouchEnd] = useState(0);
 
-  const handleMuteToggle = () => {
-    setIsMuted(!isMuted);
-  };
-
-  const handleMoodSelect = (moodId: string) => {
+  const handleMoodSelect = async (moodId: string) => {
     setCurrentMood(moodId);
     recommendationEngine.logMoodSelection(moodId);
     
     // Get new videos based on selected mood
-    const moodVideos = recommendationEngine.getVideosForMood(moodId);
+    const moodVideos = await recommendationEngine.getVideosForMood(moodId);
     setVideos(moodVideos);
-    setCurrentVideoIndex(0); // Reset to first video
   };
 
-  const handleVideoUpload = (videoData: any) => {
-    // Add new video to recommendation engine
-    recommendationEngine.addVideo(videoData);
+  const handleMediaUpload = (mediaData: any) => {
+    // Add new media to recommendation engine
+    recommendationEngine.addVideo(mediaData);
     
     // Refresh video list if current mood matches
-    if (currentMood && videoData.mood === currentMood) {
-      const updatedVideos = recommendationEngine.getVideosForMood(currentMood);
-      setVideos(updatedVideos);
+    if (currentMood && mediaData.mood === currentMood) {
+      handleMoodSelect(currentMood); // Re-fetch videos for current mood
     }
   };
 
   // Load initial videos
   useEffect(() => {
-    const loadVideos = () => {
+    const loadVideos = async () => {
       try {
-        const initialVideos = recommendationEngine.getTrendingVideos();
+        const initialVideos = await recommendationEngine.getTrendingVideos();
         setVideos(initialVideos);
         setIsLoading(false);
       } catch (error) {
@@ -56,16 +49,6 @@ export default function VideoFeed() {
 
     loadVideos();
   }, []);
-
-  const handleScroll = (e: WheelEvent) => {
-    if (e.deltaY > 0 && currentVideoIndex < videos.length - 1) {
-      // Scroll down
-      setCurrentVideoIndex(prev => prev + 1);
-    } else if (e.deltaY < 0 && currentVideoIndex > 0) {
-      // Scroll up
-      setCurrentVideoIndex(prev => prev - 1);
-    }
-  };
 
   const handleTouchStart = (e: React.TouchEvent) => {
     setTouchEnd(0);
@@ -82,17 +65,16 @@ export default function VideoFeed() {
     const isUpSwipe = distance > 50;
     const isDownSwipe = distance < -50;
 
-    if (isUpSwipe && currentVideoIndex < videos.length - 1) {
-      setCurrentVideoIndex(prev => prev + 1);
-    } else if (isDownSwipe && currentVideoIndex > 0) {
-      setCurrentVideoIndex(prev => prev - 1);
+    if (isUpSwipe) {
+      // Handle swipe down for next video navigation if needed
+    } else if (isDownSwipe) {
+      // Handle swipe up for previous video navigation if needed
     }
   };
 
   return (
     <div 
       className="h-screen overflow-hidden relative"
-      onWheel={(e) => handleScroll(e.nativeEvent as unknown as WheelEvent)}
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
@@ -114,13 +96,10 @@ export default function VideoFeed() {
       
       {/* Video Upload - Responsive positioning */}
       <div className="absolute top-4 right-4 z-30 md:static md:transform-none">
-        <VideoUpload onVideoUpload={handleVideoUpload} />
+        <VideoUpload onMediaUpload={handleMediaUpload} />
       </div>
       
-      <div 
-        className="h-full transition-transform duration-700 ease-[cubic-bezier(0.32,0.72,0,1)]"
-        style={{ transform: `translateY(-${currentVideoIndex * 100}vh)` }}
-      >
+      <div className="h-full pt-16 pb-20 md:pt-0 md:pb-0">
         {isLoading ? (
           <div className="h-screen w-full flex items-center justify-center relative">
             <div className="text-center z-10">
@@ -132,7 +111,9 @@ export default function VideoFeed() {
               <p className="text-white/70">Finding the perfect videos for your vibe...</p>
             </div>
           </div>
-        ) : videos.length === 0 ? (
+        ) : currentMood ? (
+          <RealTimeContent mood={currentMood} />
+        ) : (
           <div className="h-screen w-full flex items-center justify-center relative">
             <div className="text-center max-w-md z-10 px-4">
               <div className="w-24 h-24 bg-gradient-to-r from-purple-500 to-pink-500 rounded-2xl flex items-center justify-center mb-6 mx-auto">
@@ -140,46 +121,11 @@ export default function VideoFeed() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
                 </svg>
               </div>
-              <h3 className="text-3xl font-bold text-white mb-3">No Videos Yet</h3>
-              <p className="text-white/80 mb-6 leading-relaxed">Start by selecting your mood or upload your first video to get the party started!</p>
-              <button 
-                onClick={() => (document.querySelector('input[type="file"]') as HTMLInputElement)?.click()}
-                className="bg-gradient-to-r from-purple-500 via-pink-500 to-orange-500 text-white px-8 py-4 rounded-full font-bold text-lg hover:scale-105 transition-all duration-300 shadow-2xl hover:shadow-purple-500/25"
-              >
-                Upload Your First Video
-              </button>
+              <h3 className="text-3xl font-bold text-white mb-3">No Mood Selected</h3>
+              <p className="text-white/80 mb-6 leading-relaxed">Select your mood to see personalized content or upload your own!</p>
             </div>
           </div>
-        ) : (
-          videos.map((video, index) => (
-            <div key={video.id} className="h-screen w-full relative">
-              <div className={`absolute inset-0 transition-opacity duration-1000 ${index === currentVideoIndex ? 'opacity-100' : 'opacity-0'}`}>
-                <VideoCard
-                  video={{
-                    ...video,
-                    music: video.user?.username ? `Original Sound - ${video.user.username}` : "Original Sound"
-                  }}
-                  isMuted={isMuted}
-                  onMuteToggle={handleMuteToggle}
-                />
-              </div>
-            </div>
-          ))
         )}
-      </div>
-      
-      {/* Enhanced Scroll indicator - Mobile optimized */}
-      <div className="absolute right-4 top-1/2 transform -translate-y-1/2 flex flex-col space-y-2 z-20 md:right-6 md:space-y-3">
-        {videos.map((_, index) => (
-          <div
-            key={index}
-            className={`w-2 h-2 rounded-full transition-all duration-500 ease-out md:w-3 md:h-3 ${
-              index === currentVideoIndex 
-                ? 'bg-gradient-to-r from-purple-400 to-pink-400 scale-125 shadow-lg shadow-purple-500/50' 
-                : 'bg-white/30 hover:bg-white/50 backdrop-blur-sm'
-            }`}
-          />
-        ))}
       </div>
       
       {/* Navigation Menu - Mobile optimized */}
