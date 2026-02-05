@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import { Upload, X, Camera, Link } from 'lucide-react';
+import { Upload, X } from 'lucide-react';
 
 interface VideoUploadProps {
   onVideoUpload: (videoData: any) => void;
@@ -9,212 +9,145 @@ interface VideoUploadProps {
 
 export default function VideoUpload({ onVideoUpload }: VideoUploadProps) {
   const [isUploading, setIsUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [videoUrl, setVideoUrl] = useState('');
-  const [title, setTitle] = useState('');
+  const [showUploadModal, setShowUploadModal] = useState(false);
+  const [selectedMood, setSelectedMood] = useState<string>('');
   const [description, setDescription] = useState('');
-  const [selectedMood, setSelectedMood] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      setSelectedFile(file);
-      setVideoUrl('');
+      setShowUploadModal(true);
     }
   };
 
-  const handleUrlSubmit = () => {
-    if (videoUrl) {
-      // Nanti akan diintegrasikan dengan TikTok API atau parser
-      console.log('Processing video URL:', videoUrl);
-      setSelectedFile(null);
-    }
-  };
-
-  const handleUpload = async () => {
-    if (!selectedFile && !videoUrl) return;
+  const handleUpload = () => {
+    if (!fileInputRef.current?.files?.[0] || !selectedMood) return;
     
     setIsUploading(true);
-    setUploadProgress(0);
-
-    try {
-      // Simulasi upload progress
-      const interval = setInterval(() => {
-        setUploadProgress(prev => {
-          if (prev >= 90) {
-            clearInterval(interval);
-            return 90;
-          }
-          return prev + 10;
-        });
-      }, 200);
-
-      // Simulasi API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
+    
+    // Simulate upload process
+    setTimeout(() => {
       const videoData = {
         id: Date.now().toString(),
-        title,
+        url: URL.createObjectURL(fileInputRef.current!.files![0]),
         description,
         mood: selectedMood,
-        source: selectedFile ? 'upload' : 'url',
-        url: selectedFile ? URL.createObjectURL(selectedFile) : videoUrl,
-        timestamp: new Date(),
+        user: {
+          username: 'you',
+          avatar: '/default-avatar.png'
+        },
         likes: 0,
         comments: 0,
         shares: 0
       };
-
-      onVideoUpload(videoData);
-      resetForm();
       
-      clearInterval(interval);
-      setUploadProgress(100);
-      setTimeout(() => {
-        setIsUploading(false);
-        setUploadProgress(0);
-      }, 500);
-
-    } catch (error) {
-      console.error('Upload failed:', error);
+      onVideoUpload(videoData);
       setIsUploading(false);
-      setUploadProgress(0);
-    }
+      setShowUploadModal(false);
+      setSelectedMood('');
+      setDescription('');
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }, 2000);
   };
 
-  const resetForm = () => {
-    setSelectedFile(null);
-    setVideoUrl('');
-    setTitle('');
-    setDescription('');
-    setSelectedMood('');
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-  };
+  const moods = [
+    { id: 'happy', name: 'Happy', emoji: '😊' },
+    { id: 'sad', name: 'Sad', emoji: '😢' },
+    { id: 'energetic', name: 'Energetic', emoji: '⚡' },
+    { id: 'calm', name: 'Calm', emoji: '😌' },
+    { id: 'focused', name: 'Focused', emoji: '🎯' },
+    { id: 'tired', name: 'Tired', emoji: '😴' },
+  ];
 
   return (
-    <div className="fixed bottom-24 right-6 z-50">
-      <div className="bg-gradient-to-br from-black/90 to-gray-900/90 backdrop-blur-xl rounded-2xl p-5 border border-white/20 w-80 shadow-2xl hover:shadow-purple-500/20 transition-all duration-300 hover:scale-[1.02]">
-        <h3 className="text-white font-bold mb-5 flex items-center text-lg">
-          <div className="w-8 h-8 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg flex items-center justify-center mr-3">
-            <Upload className="text-white" size={18} />
-          </div>
-          Upload Your Vibe
-        </h3>
+    <>
+      {/* Upload Button */}
+      <button
+        onClick={() => fileInputRef.current?.click()}
+        className="flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 transition-all duration-300 hover:scale-110 shadow-lg"
+      >
+        <Upload className="w-5 h-5 text-white" />
+      </button>
 
-        {/* File Upload */}
-        <div className="mb-4">
-          <label className="block text-white text-sm mb-2">Video File</label>
-          <div 
-            className="border-2 border-dashed border-white/30 rounded-lg p-4 text-center cursor-pointer hover:border-white/50 transition-colors"
-            onClick={() => fileInputRef.current?.click()}
-          >
-            <Camera className="mx-auto mb-2 text-white/60" size={24} />
-            <p className="text-white/80 text-sm">
-              {selectedFile ? selectedFile.name : 'Click to select video'}
-            </p>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="video/*"
-              className="hidden"
-              onChange={handleFileSelect}
-            />
-          </div>
-        </div>
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="video/*"
+        onChange={handleFileSelect}
+        className="hidden"
+      />
 
-        {/* URL Input */}
-        <div className="mb-4">
-          <label className="block text-white text-sm mb-2">Or Video URL</label>
-          <div className="flex">
-            <input
-              type="url"
-              value={videoUrl}
-              onChange={(e) => setVideoUrl(e.target.value)}
-              placeholder="https://example.com/video.mp4"
-              className="flex-1 bg-white/10 border border-white/20 rounded-l-lg px-3 py-2 text-white placeholder-white/50 focus:outline-none focus:border-white/40"
-            />
-            <button
-              onClick={handleUrlSubmit}
-              className="bg-blue-500 hover:bg-blue-600 px-3 rounded-r-lg"
-            >
-              <Link size={20} className="text-white" />
-            </button>
-          </div>
-        </div>
-
-        {/* Title */}
-        <div className="mb-4">
-          <label className="block text-white text-sm mb-2">Title</label>
-          <input
-            type="text"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="Video title"
-            className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white placeholder-white/50 focus:outline-none focus:border-white/40"
-          />
-        </div>
-
-        {/* Description */}
-        <div className="mb-4">
-          <label className="block text-white text-sm mb-2">Description</label>
-          <textarea
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder="What's this video about?"
-            rows={3}
-            className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white placeholder-white/50 focus:outline-none focus:border-white/40 resize-none"
-          />
-        </div>
-
-        {/* Mood Selection */}
-        <div className="mb-6">
-          <label className="block text-white text-sm mb-2">Mood Category</label>
-          <select
-            value={selectedMood}
-            onChange={(e) => setSelectedMood(e.target.value)}
-            className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-white/40"
-          >
-            <option value="" className="bg-black">Select mood</option>
-            <option value="happy" className="bg-black">😊 Happy</option>
-            <option value="sad" className="bg-black">😢 Sad</option>
-            <option value="energetic" className="bg-black">⚡ Energetic</option>
-            <option value="calm" className="bg-black">😌 Calm</option>
-            <option value="focused" className="bg-black">🎯 Focused</option>
-            <option value="tired" className="bg-black">😴 Tired</option>
-          </select>
-        </div>
-
-        {/* Upload Button */}
-        <button
-          onClick={handleUpload}
-          disabled={isUploading || (!selectedFile && !videoUrl) || !title || !selectedMood}
-          className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-bold py-3 rounded-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {isUploading ? (
-            <div className="flex items-center justify-center">
-              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
-              Uploading... {uploadProgress}%
+      {/* Upload Modal - Mobile optimized */}
+      {showUploadModal && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-lg z-50 flex items-center justify-center p-4">
+          <div className="bg-gradient-to-br from-gray-900 to-black rounded-2xl p-6 w-full max-w-md border border-white/20 shadow-2xl">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-white text-xl font-bold">Upload Video</h2>
+              <button 
+                onClick={() => setShowUploadModal(false)}
+                className="text-white/70 hover:text-white transition-colors"
+              >
+                <X className="w-6 h-6" />
+              </button>
             </div>
-          ) : (
-            'Upload Video'
-          )}
-        </button>
 
-        {isUploading && (
-          <div className="mt-3">
-            <div className="w-full bg-white/20 rounded-full h-2">
-              <div 
-                className="bg-gradient-to-r from-purple-400 to-pink-400 h-2 rounded-full transition-all duration-300"
-                style={{ width: `${uploadProgress}%` }}
-              ></div>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-white text-sm font-medium mb-2">
+                  Description
+                </label>
+                <input
+                  type="text"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="What's your video about?"
+                  className="w-full px-4 py-3 bg-black/40 border border-white/20 rounded-xl text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-white text-sm font-medium mb-2">
+                  Select Mood
+                </label>
+                <div className="grid grid-cols-3 gap-2">
+                  {moods.map((mood) => (
+                    <button
+                      key={mood.id}
+                      onClick={() => setSelectedMood(mood.id)}
+                      className={`flex flex-col items-center p-3 rounded-xl transition-all duration-300 ${
+                        selectedMood === mood.id
+                          ? 'bg-gradient-to-r from-purple-500/30 to-pink-500/30 border border-purple-400/50'
+                          : 'bg-white/10 hover:bg-white/20 border border-white/10'
+                      }`}
+                    >
+                      <span className="text-2xl mb-1">{mood.emoji}</span>
+                      <span className="text-white text-xs font-medium">{mood.name}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <button
+                onClick={handleUpload}
+                disabled={!selectedMood || isUploading}
+                className="w-full bg-gradient-to-r from-purple-500 to-pink-500 text-white py-3 rounded-xl font-bold hover:from-purple-600 hover:to-pink-600 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isUploading ? (
+                  <div className="flex items-center justify-center">
+                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                    Uploading...
+                  </div>
+                ) : (
+                  'Upload Video'
+                )}
+              </button>
             </div>
           </div>
-        )}
-      </div>
-    </div>
+        </div>
+      )}
+    </>
   );
 }

@@ -13,6 +13,8 @@ export default function VideoFeed() {
   const [currentMood, setCurrentMood] = useState<string | null>(null);
   const [videos, setVideos] = useState<Video[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [touchStart, setTouchStart] = useState(0);
+  const [touchEnd, setTouchEnd] = useState(0);
 
   const handleMuteToggle = () => {
     setIsMuted(!isMuted);
@@ -65,10 +67,35 @@ export default function VideoFeed() {
     }
   };
 
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setTouchEnd(0);
+    setTouchStart(e.targetTouches[0].clientY);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    setTouchEnd(e.targetTouches[0].clientY);
+  };
+
+  const handleTouchEnd = () => {
+    if (!touchStart || !touchEnd) return;
+    const distance = touchStart - touchEnd;
+    const isUpSwipe = distance > 50;
+    const isDownSwipe = distance < -50;
+
+    if (isUpSwipe && currentVideoIndex < videos.length - 1) {
+      setCurrentVideoIndex(prev => prev + 1);
+    } else if (isDownSwipe && currentVideoIndex > 0) {
+      setCurrentVideoIndex(prev => prev - 1);
+    }
+  };
+
   return (
     <div 
       className="h-screen overflow-hidden relative"
       onWheel={(e) => handleScroll(e.nativeEvent as unknown as WheelEvent)}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
     >
       {/* Animated Background Elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -77,14 +104,18 @@ export default function VideoFeed() {
         <div className="absolute top-1/2 right-1/4 w-32 h-32 bg-blue-500/10 rounded-full blur-2xl animate-pulse delay-500"></div>
       </div>
       
-      {/* Mood Selector */}
-      <MoodSelector 
-        onMoodSelect={handleMoodSelect}
-        currentMood={currentMood}
-      />
+      {/* Mood Selector - Responsive positioning */}
+      <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-30 md:static md:transform-none">
+        <MoodSelector 
+          onMoodSelect={handleMoodSelect}
+          currentMood={currentMood}
+        />
+      </div>
       
-      {/* Video Upload */}
-      <VideoUpload onVideoUpload={handleVideoUpload} />
+      {/* Video Upload - Responsive positioning */}
+      <div className="absolute top-4 right-4 z-30 md:static md:transform-none">
+        <VideoUpload onVideoUpload={handleVideoUpload} />
+      </div>
       
       <div 
         className="h-full transition-transform duration-700 ease-[cubic-bezier(0.32,0.72,0,1)]"
@@ -103,7 +134,7 @@ export default function VideoFeed() {
           </div>
         ) : videos.length === 0 ? (
           <div className="h-screen w-full flex items-center justify-center relative">
-            <div className="text-center max-w-md z-10">
+            <div className="text-center max-w-md z-10 px-4">
               <div className="w-24 h-24 bg-gradient-to-r from-purple-500 to-pink-500 rounded-2xl flex items-center justify-center mb-6 mx-auto">
                 <svg className="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
@@ -137,12 +168,12 @@ export default function VideoFeed() {
         )}
       </div>
       
-      {/* Enhanced Scroll indicator */}
-      <div className="absolute right-6 top-1/2 transform -translate-y-1/2 flex flex-col space-y-3 z-20">
+      {/* Enhanced Scroll indicator - Mobile optimized */}
+      <div className="absolute right-4 top-1/2 transform -translate-y-1/2 flex flex-col space-y-2 z-20 md:right-6 md:space-y-3">
         {videos.map((_, index) => (
           <div
             key={index}
-            className={`w-3 h-3 rounded-full transition-all duration-500 ease-out ${
+            className={`w-2 h-2 rounded-full transition-all duration-500 ease-out md:w-3 md:h-3 ${
               index === currentVideoIndex 
                 ? 'bg-gradient-to-r from-purple-400 to-pink-400 scale-125 shadow-lg shadow-purple-500/50' 
                 : 'bg-white/30 hover:bg-white/50 backdrop-blur-sm'
@@ -151,8 +182,10 @@ export default function VideoFeed() {
         ))}
       </div>
       
-      {/* Navigation Menu */}
-      <NavigationMenu />
+      {/* Navigation Menu - Mobile optimized */}
+      <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-30 md:static md:transform-none">
+        <NavigationMenu />
+      </div>
     </div>
   );
 }

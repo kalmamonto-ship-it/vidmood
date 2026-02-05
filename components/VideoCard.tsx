@@ -48,6 +48,7 @@ export default function VideoCard({ video, isMuted, onMuteToggle }: VideoCardPro
           autoPlay
           loop
           muted={isMuted}
+          playsInline
         />
         
         {/* Enhanced Overlay gradients */}
@@ -59,52 +60,54 @@ export default function VideoCard({ video, isMuted, onMuteToggle }: VideoCardPro
         <div className="absolute inset-0 border-2 border-white/10 rounded-sm pointer-events-none"></div>
       </div>
 
-      {/* User Info - Bottom Left */}
-      <div className="absolute bottom-20 left-4 z-10">
-        <div className="flex items-center space-x-3">
+      {/* User Info - Bottom Left - Responsive positioning */}
+      <div className="absolute bottom-24 left-4 z-10 md:bottom-20">
+        <div className="flex items-center space-x-3 max-w-xs">
           {video.user ? (
             <>
               <img 
                 src={video.user.avatar} 
                 alt={video.user.username}
-                className="w-12 h-12 rounded-full border-2 border-white object-cover"
+                className="w-10 h-10 rounded-full border-2 border-white object-cover md:w-12 md:h-12"
               />
-              <div>
-                <h3 className="text-white font-bold">@{video.user.username}</h3>
-                <p className="text-white text-sm max-w-xs">{video.description}</p>
-                <div className="flex items-center space-x-2 mt-1">
-                  <span className="text-white/80 text-sm">🎵</span>
-                  <span className="text-white/80 text-sm">{video.music}</span>
+              <div className="min-w-0">
+                <h3 className="text-white font-bold text-sm md:text-base">@{video.user.username}</h3>
+                <p className="text-white text-xs md:text-sm truncate">{video.description}</p>
+                <div className="flex items-center space-x-1 mt-1">
+                  <span className="text-white/80 text-xs">🎵</span>
+                  <span className="text-white/80 text-xs truncate">{video.music}</span>
                 </div>
               </div>
             </>
           ) : (
-            <div>
-              <p className="text-white text-sm max-w-xs">{video.description}</p>
-              <div className="flex items-center space-x-2 mt-1">
-                <span className="text-white/80 text-sm">🎵</span>
-                <span className="text-white/80 text-sm">{video.music}</span>
+            <div className="min-w-0">
+              <p className="text-white text-xs md:text-sm truncate max-w-[200px]">{video.description}</p>
+              <div className="flex items-center space-x-1 mt-1">
+                <span className="text-white/80 text-xs">🎵</span>
+                <span className="text-white/80 text-xs truncate">{video.music}</span>
               </div>
             </div>
           )}
         </div>
       </div>
 
-      {/* Action Buttons - Right Side */}
-      <ActionButtons
-        video={{
-          id: video.id,
-          isLiked,
-          likes: likeCount,
-          comments: video.comments,
-          shares: video.shares,
-          isMuted
-        }}
-        onLike={handleLike}
-        onComment={handleComment}
-        onShare={handleShare}
-        onMute={onMuteToggle}
-      />
+      {/* Action Buttons - Right Side - Responsive positioning */}
+      <div className="absolute right-4 bottom-24 z-10 md:right-6 md:bottom-20">
+        <ActionButtons
+          video={{
+            id: video.id,
+            isLiked,
+            likes: likeCount,
+            comments: video.comments,
+            shares: video.shares,
+            isMuted
+          }}
+          onLike={handleLike}
+          onComment={handleComment}
+          onShare={handleShare}
+          onMute={onMuteToggle}
+        />
+      </div>
     </div>
   );
 }

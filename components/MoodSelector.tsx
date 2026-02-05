@@ -1,24 +1,7 @@
 'use client';
 
-import React, { useState, ReactElement } from 'react';
-import { Smile, Frown, Zap, Heart, Coffee, Moon } from 'lucide-react';
-
-interface Mood {
-  id: string;
-  name: string;
-  icon: ReactElement;
-  color: string;
-  bgColor: string;
-}
-
-const moods: Mood[] = [
-  { id: 'happy', name: 'Happy', icon: <Smile />, color: 'text-yellow-400', bgColor: 'bg-yellow-400/20' },
-  { id: 'sad', name: 'Sad', icon: <Frown />, color: 'text-blue-400', bgColor: 'bg-blue-400/20' },
-  { id: 'energetic', name: 'Energetic', icon: <Zap />, color: 'text-red-400', bgColor: 'bg-red-400/20' },
-  { id: 'calm', name: 'Calm', icon: <Heart />, color: 'text-green-400', bgColor: 'bg-green-400/20' },
-  { id: 'focused', name: 'Focused', icon: <Coffee />, color: 'text-purple-400', bgColor: 'bg-purple-400/20' },
-  { id: 'tired', name: 'Tired', icon: <Moon />, color: 'text-gray-400', bgColor: 'bg-gray-400/20' },
-];
+import { useState } from 'react';
+import { moodCategories } from '@/data/moods';
 
 interface MoodSelectorProps {
   onMoodSelect: (moodId: string) => void;
@@ -28,60 +11,69 @@ interface MoodSelectorProps {
 export default function MoodSelector({ onMoodSelect, currentMood }: MoodSelectorProps) {
   const [isOpen, setIsOpen] = useState(false);
 
+  const toggleSelector = () => {
+    setIsOpen(!isOpen);
+  };
+
   const handleMoodSelect = (moodId: string) => {
     onMoodSelect(moodId);
     setIsOpen(false);
   };
 
-  const selectedMood = moods.find(mood => mood.id === currentMood);
+  const currentMoodData = currentMood 
+    ? moodCategories.find(mood => mood.id === currentMood)
+    : null;
 
   return (
-    <div className="fixed top-6 left-6 z-50">
-      <div className="relative">
-        {/* Mood Selector Button */}
-        <button
-          onClick={() => setIsOpen(!isOpen)}
-          className={`flex items-center space-x-3 px-5 py-3 rounded-2xl backdrop-blur-xl transition-all duration-300 shadow-xl hover:scale-105 ${
-            selectedMood 
-              ? `${selectedMood.bgColor} border-2 ${selectedMood.color.replace('text-', 'border-')} shadow-lg` 
-              : 'bg-black/40 border border-white/30 hover:bg-black/60 hover:border-white/50'
-          }`}
+    <div className="relative z-50">
+      {/* Mood Selector Button */}
+      <button
+        onClick={toggleSelector}
+        className="flex items-center space-x-2 bg-black/40 backdrop-blur-xl border border-white/20 rounded-full px-4 py-2 hover:bg-black/60 transition-all duration-300 hover:scale-105 shadow-lg"
+      >
+        <div className="flex items-center justify-center w-8 h-8 rounded-full bg-gradient-to-r from-purple-500 to-pink-500">
+          {currentMoodData ? (
+            <span className="text-white text-lg">{currentMoodData.icon}</span>
+          ) : (
+            <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          )}
+        </div>
+        <span className="text-white font-medium text-sm md:text-base">
+          {currentMoodData ? currentMoodData.name : 'Select Mood'}
+        </span>
+        <svg 
+          className={`w-4 h-4 text-white transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`}
+          fill="none" 
+          stroke="currentColor" 
+          viewBox="0 0 24 24"
         >
-          <div className={selectedMood ? selectedMood.color : 'text-white'}>
-            {selectedMood ? selectedMood.icon : <Smile />}
-          </div>
-          <span className={`font-semibold text-base ${selectedMood ? selectedMood.color : 'text-white'}`}>
-            {selectedMood ? selectedMood.name : 'Your Mood?'}
-          </span>
-        </button>
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
 
-        {/* Mood Options Dropdown */}
-        {isOpen && (
-          <div className="absolute top-14 left-0 bg-black/80 backdrop-blur-lg rounded-2xl p-3 border border-white/20 min-w-[200px]">
-            <h3 className="text-white text-sm font-medium mb-3 px-2">How are you feeling?</h3>
-            <div className="grid grid-cols-2 gap-2">
-              {moods.map((mood) => (
-                <button
-                  key={mood.id}
-                  onClick={() => handleMoodSelect(mood.id)}
-                  className={`flex flex-col items-center p-3 rounded-xl transition-all duration-200 ${
-                    currentMood === mood.id
-                      ? `${mood.bgColor} ring-2 ${mood.color.replace('text-', 'ring-')}`
-                      : 'bg-white/10 hover:bg-white/20'
-                  }`}
-                >
-                  <div className={`mb-1 ${mood.color}`}>
-                    {mood.icon}
-                  </div>
-                  <span className={`text-xs font-medium ${mood.color}`}>
-                    {mood.name}
-                  </span>
-                </button>
-              ))}
-            </div>
+      {/* Mood Options Dropdown - Mobile optimized */}
+      {isOpen && (
+        <div className="absolute left-1/2 transform -translate-x-1/2 mt-2 bg-black/80 backdrop-blur-xl border border-white/20 rounded-2xl shadow-2xl shadow-purple-500/20 p-3 min-w-[280px] md:min-w-[320px]">
+          <div className="grid grid-cols-3 gap-2 md:gap-3">
+            {moodCategories.map((mood) => (
+              <button
+                key={mood.id}
+                onClick={() => handleMoodSelect(mood.id)}
+                className={`flex flex-col items-center p-3 rounded-xl transition-all duration-300 hover:scale-105 ${
+                  currentMood === mood.id
+                    ? 'bg-gradient-to-r from-purple-500/30 to-pink-500/30 border border-purple-400/50'
+                    : 'bg-white/10 hover:bg-white/20 border border-white/10'
+                }`}
+              >
+                <span className="text-2xl mb-1">{mood.icon}</span>
+                <span className="text-white text-xs font-medium text-center">{mood.name}</span>
+              </button>
+            ))}
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }
