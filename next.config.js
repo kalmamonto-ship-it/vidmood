@@ -19,6 +19,24 @@ const nextConfig = {
 
     return config;
   },
+  // Konfigurasi untuk menangani service worker
+  async headers() {
+    return [
+      {
+        source: '/sw.js',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=0, must-revalidate',
+          },
+          {
+            key: 'Content-Type',
+            value: 'application/javascript',
+          },
+        ],
+      },
+    ];
+  },
 };
 
 module.exports = nextConfig;
