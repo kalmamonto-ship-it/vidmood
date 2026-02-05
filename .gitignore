@@ -1,0 +1,9 @@
+node_modules
+.next
+out
+.nyc_output
+coverage
+.env.local
+.env.production.local
+.env.development.local
+.git
