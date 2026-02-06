@@ -96,10 +96,12 @@ export default function RealTimeContent({ mood }: RealTimeContentProps) {
           // This is a video item
           return (
             <VideoCard
-                  key={item.id}
-                  video={item as VideoData} isMuted={false} onMuteToggle={function (): void {
-                      throw new Error('Function not implemented.');
-                  } }            />
+              key={item.id}
+              video={item as VideoData}
+              isMuted={false}
+              onMuteToggle={() => {}}
+              showComments={() => {}}
+            />
           );
         } else {
           // This is a photo item

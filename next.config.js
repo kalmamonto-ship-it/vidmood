@@ -1,15 +1,13 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Nonaktifkan Turbopack
+  // Disable SWC completely to avoid Windows compatibility issues
+  swcMinify: false,
   experimental: {
-    nextScriptWorkers: false
+    nextScriptWorkers: false,
   },
-  // Tambahkan konfigurasi untuk menghindari masalah dengan next/font
-  images: {
-    unoptimized: true,
-  },
+  // Also disable experimental Turbopack
   webpack: (config, { isServer }) => {
-    // Konfigurasi webpack yang lebih sederhana
+    // Add fallback for fs module in server environment
     if (isServer) {
       config.resolve.fallback = {
         ...(config.resolve.fallback || {}),
@@ -19,7 +17,7 @@ const nextConfig = {
 
     return config;
   },
-  // Konfigurasi untuk menangani service worker
+  // Configuration for handling service worker
   async headers() {
     return [
       {
@@ -36,6 +34,10 @@ const nextConfig = {
         ],
       },
     ];
+  },
+  // Unoptimized images to avoid build issues
+  images: {
+    unoptimized: true,
   },
 };
 

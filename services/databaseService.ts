@@ -19,6 +19,11 @@ import {
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { db, storage } from '@/lib/firebase';
 
+// Check if Firebase is initialized
+const checkFirebaseInitialized = (): boolean => {
+  return db !== undefined && storage !== undefined;
+};
+
 export interface VideoData {
   id: string;
   url: string;
@@ -67,10 +72,14 @@ export interface RealTimeUpdateCallback {
 export class DatabaseService {
   // Upload video file to Firebase Storage
   static async uploadVideoFile(file: File, userId: string): Promise<string> {
+    if (!checkFirebaseInitialized()) {
+      throw new Error('Firebase is not initialized');
+    }
+    
     try {
       const timestamp = Date.now();
       const fileName = `${userId}_${timestamp}_${file.name}`;
-      const storageRef = ref(storage, `videos/${fileName}`);
+      const storageRef = ref(storage!, `videos/${fileName}`);
       
       const snapshot = await uploadBytes(storageRef, file);
       const downloadURL = await getDownloadURL(snapshot.ref);
@@ -84,10 +93,14 @@ export class DatabaseService {
 
   // Upload thumbnail image to Firebase Storage
   static async uploadThumbnail(file: File, userId: string): Promise<string> {
+    if (!checkFirebaseInitialized()) {
+      throw new Error('Firebase is not initialized');
+    }
+    
     try {
       const timestamp = Date.now();
       const fileName = `${userId}_thumb_${timestamp}_${file.name}`;
-      const storageRef = ref(storage, `thumbnails/${fileName}`);
+      const storageRef = ref(storage!, `thumbnails/${fileName}`);
       
       const snapshot = await uploadBytes(storageRef, file);
       const downloadURL = await getDownloadURL(snapshot.ref);
@@ -101,6 +114,10 @@ export class DatabaseService {
 
   // Save video metadata to Firestore
   static async saveVideo(videoData: Omit<VideoData, 'id' | 'createdAt'>): Promise<string> {
+    if (!checkFirebaseInitialized()) {
+      throw new Error('Firebase is not initialized');
+    }
+    
     try {
       const videoDoc = {
         ...videoData,
@@ -108,7 +125,7 @@ export class DatabaseService {
         status: 'published'
       };
 
-      const docRef = await addDoc(collection(db, 'videos'), videoDoc);
+      const docRef = await addDoc(collection(db!, 'videos'), videoDoc);
       return docRef.id;
     } catch (error) {
       console.error('Error saving video:', error);
@@ -118,9 +135,13 @@ export class DatabaseService {
 
   // Get videos by mood
   static async getVideosByMood(mood: string, limitCount: number = 20): Promise<VideoData[]> {
+    if (!checkFirebaseInitialized()) {
+      throw new Error('Firebase is not initialized');
+    }
+    
     try {
       const q = query(
-        collection(db, 'videos'),
+        collection(db!, 'videos'),
         where('mood', '==', mood),
         where('status', '==', 'published'),
         orderBy('createdAt', 'desc'),
@@ -144,9 +165,13 @@ export class DatabaseService {
 
   // Get trending videos
   static async getTrendingVideos(limitCount: number = 20): Promise<VideoData[]> {
+    if (!checkFirebaseInitialized()) {
+      throw new Error('Firebase is not initialized');
+    }
+    
     try {
       const q = query(
-        collection(db, 'videos'),
+        collection(db!, 'videos'),
         where('status', '==', 'published'),
         orderBy('likes', 'desc'),
         orderBy('createdAt', 'desc'),
@@ -170,9 +195,13 @@ export class DatabaseService {
 
   // Get all videos
   static async getAllVideos(limitCount: number = 50): Promise<VideoData[]> {
+    if (!checkFirebaseInitialized()) {
+      throw new Error('Firebase is not initialized');
+    }
+    
     try {
       const q = query(
-        collection(db, 'videos'),
+        collection(db!, 'videos'),
         where('status', '==', 'published'),
         orderBy('createdAt', 'desc'),
         limit(limitCount)
@@ -195,8 +224,12 @@ export class DatabaseService {
 
   // Update video likes
   static async updateVideoLikes(videoId: string, incrementBy: number): Promise<void> {
+    if (!checkFirebaseInitialized()) {
+      throw new Error('Firebase is not initialized');
+    }
+    
     try {
-      const videoRef = doc(db, 'videos', videoId);
+      const videoRef = doc(db!, 'videos', videoId);
       await updateDoc(videoRef, {
         likes: increment(incrementBy)
       });
@@ -208,8 +241,12 @@ export class DatabaseService {
 
   // Update video comments
   static async updateVideoComments(videoId: string, incrementBy: number): Promise<void> {
+    if (!checkFirebaseInitialized()) {
+      throw new Error('Firebase is not initialized');
+    }
+    
     try {
-      const videoRef = doc(db, 'videos', videoId);
+      const videoRef = doc(db!, 'videos', videoId);
       await updateDoc(videoRef, {
         comments: increment(incrementBy)
       });
@@ -221,8 +258,12 @@ export class DatabaseService {
 
   // Update video shares
   static async updateVideoShares(videoId: string, incrementBy: number): Promise<void> {
+    if (!checkFirebaseInitialized()) {
+      throw new Error('Firebase is not initialized');
+    }
+    
     try {
-      const videoRef = doc(db, 'videos', videoId);
+      const videoRef = doc(db!, 'videos', videoId);
       await updateDoc(videoRef, {
         shares: increment(incrementBy)
       });
@@ -234,13 +275,17 @@ export class DatabaseService {
 
   // Save user data
   static async saveUser(userData: Omit<UserData, 'id' | 'createdAt'>): Promise<string> {
+    if (!checkFirebaseInitialized()) {
+      throw new Error('Firebase is not initialized');
+    }
+    
     try {
       const userDoc = {
         ...userData,
         createdAt: serverTimestamp()
       };
 
-      const docRef = await addDoc(collection(db, 'users'), userDoc);
+      const docRef = await addDoc(collection(db!, 'users'), userDoc);
       return docRef.id;
     } catch (error) {
       console.error('Error saving user:', error);
@@ -250,9 +295,13 @@ export class DatabaseService {
 
   // Get user by ID
   static async getUserById(userId: string): Promise<UserData | null> {
+    if (!checkFirebaseInitialized()) {
+      throw new Error('Firebase is not initialized');
+    }
+    
     try {
-      const userRef = doc(db, 'users', userId);
-      const q = query(collection(db, 'users'), where('id', '==', userId));
+      const userRef = doc(db!, 'users', userId);
+      const q = query(collection(db!, 'users'), where('id', '==', userId));
       const userDoc = await getDocs(q);
       
       if (userDoc.empty) return null;
@@ -271,10 +320,14 @@ export class DatabaseService {
 
   // Upload photo to Firebase Storage
   static async uploadPhotoFile(file: File, userId: string): Promise<string> {
+    if (!checkFirebaseInitialized()) {
+      throw new Error('Firebase is not initialized');
+    }
+    
     try {
       const timestamp = Date.now();
       const fileName = `${userId}_photo_${timestamp}_${file.name}`;
-      const storageRef = ref(storage, `photos/${fileName}`);
+      const storageRef = ref(storage!, `photos/${fileName}`);
       
       const snapshot = await uploadBytes(storageRef, file);
       const downloadURL = await getDownloadURL(snapshot.ref);
@@ -288,6 +341,10 @@ export class DatabaseService {
 
   // Save photo metadata to Firestore
   static async savePhoto(photoData: Omit<PhotoData, 'id' | 'createdAt'>): Promise<string> {
+    if (!checkFirebaseInitialized()) {
+      throw new Error('Firebase is not initialized');
+    }
+    
     try {
       const photoDoc = {
         ...photoData,
@@ -295,7 +352,7 @@ export class DatabaseService {
         status: 'published'
       };
 
-      const docRef = await addDoc(collection(db, 'photos'), photoDoc);
+      const docRef = await addDoc(collection(db!, 'photos'), photoDoc);
       return docRef.id;
     } catch (error) {
       console.error('Error saving photo:', error);
@@ -305,9 +362,13 @@ export class DatabaseService {
 
   // Get photos by mood
   static async getPhotosByMood(mood: string, limitCount: number = 20): Promise<PhotoData[]> {
+    if (!checkFirebaseInitialized()) {
+      throw new Error('Firebase is not initialized');
+    }
+    
     try {
       const q = query(
-        collection(db, 'photos'),
+        collection(db!, 'photos'),
         where('mood', '==', mood),
         where('status', '==', 'published'),
         orderBy('createdAt', 'desc'),
@@ -331,8 +392,12 @@ export class DatabaseService {
 
   // Subscribe to real-time video updates by mood
   static subscribeToVideosByMood(mood: string, callback: RealTimeUpdateCallback): Unsubscribe {
+    if (!checkFirebaseInitialized()) {
+      throw new Error('Firebase is not initialized');
+    }
+    
     const q = query(
-      collection(db, 'videos'),
+      collection(db!, 'videos'),
       where('mood', '==', mood),
       where('status', '==', 'published'),
       orderBy('createdAt', 'desc')
@@ -356,8 +421,12 @@ export class DatabaseService {
 
   // Subscribe to real-time photo updates by mood
   static subscribeToPhotosByMood(mood: string, callback: RealTimeUpdateCallback): Unsubscribe {
+    if (!checkFirebaseInitialized()) {
+      throw new Error('Firebase is not initialized');
+    }
+    
     const q = query(
-      collection(db, 'photos'),
+      collection(db!, 'photos'),
       where('mood', '==', mood),
       where('status', '==', 'published'),
       orderBy('createdAt', 'desc')
@@ -381,8 +450,12 @@ export class DatabaseService {
 
   // Subscribe to real-time updates for all content
   static subscribeToAllContent(callback: RealTimeUpdateCallback): Unsubscribe {
+    if (!checkFirebaseInitialized()) {
+      throw new Error('Firebase is not initialized');
+    }
+    
     const q = query(
-      collection(db, 'videos'),
+      collection(db!, 'videos'),
       where('status', '==', 'published'),
       orderBy('createdAt', 'desc')
     );
@@ -405,9 +478,13 @@ export class DatabaseService {
 
   // Delete video and its associated files
   static async deleteVideo(videoId: string, videoUrl: string): Promise<boolean> {
+    if (!checkFirebaseInitialized()) {
+      throw new Error('Firebase is not initialized');
+    }
+    
     try {
       // Delete from Firestore
-      const videoRef = doc(db, 'videos', videoId);
+      const videoRef = doc(db!, 'videos', videoId);
       await updateDoc(videoRef, { status: 'deleted' });
       
       // Optionally delete file from storage
@@ -422,9 +499,13 @@ export class DatabaseService {
 
   // Delete photo and its associated files
   static async deletePhoto(photoId: string): Promise<boolean> {
+    if (!checkFirebaseInitialized()) {
+      throw new Error('Firebase is not initialized');
+    }
+    
     try {
       // Delete from Firestore
-      const photoRef = doc(db, 'photos', photoId);
+      const photoRef = doc(db!, 'photos', photoId);
       await updateDoc(photoRef, { status: 'deleted' });
       
       return true;
@@ -436,18 +517,22 @@ export class DatabaseService {
 
   // Get videos with pagination for infinite scroll
   static async getVideosWithPagination(lastVisible: any, limitCount: number = 10): Promise<{ videos: VideoData[], lastVisible: any }> {
+    if (!checkFirebaseInitialized()) {
+      throw new Error('Firebase is not initialized');
+    }
+    
     try {
       let q;
       if (lastVisible) {
         q = query(
-          collection(db, 'videos'),
+          collection(db!, 'videos'),
           where('status', '==', 'published'),
           orderBy('createdAt', 'desc'),
           limit(limitCount)
         );
       } else {
         q = query(
-          collection(db, 'videos'),
+          collection(db!, 'videos'),
           where('status', '==', 'published'),
           orderBy('createdAt', 'desc'),
           limit(limitCount)
@@ -476,8 +561,12 @@ export class DatabaseService {
 
   // Subscribe to real-time video updates for feed
   static subscribeToVideoFeed(callback: RealTimeUpdateCallback): Unsubscribe {
+    if (!checkFirebaseInitialized()) {
+      throw new Error('Firebase is not initialized');
+    }
+    
     const q = query(
-      collection(db, 'videos'),
+      collection(db!, 'videos'),
       where('status', '==', 'published'),
       orderBy('createdAt', 'desc')
     );

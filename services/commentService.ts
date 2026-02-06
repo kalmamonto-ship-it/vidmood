@@ -15,12 +15,21 @@ import { CommentData } from '../types/comment';
 
 const COMMENTS_COLLECTION = 'comments';
 
+// Check if Firebase is initialized
+const checkFirebaseInitialized = (): boolean => {
+  return db !== undefined;
+};
+
 export const commentService = {
   // Get comments by video ID
   getCommentsByVideoId: async (videoId: string): Promise<CommentData[]> => {
+    if (!checkFirebaseInitialized()) {
+      throw new Error('Firebase is not initialized');
+    }
+    
     try {
       const q = query(
-        collection(db, COMMENTS_COLLECTION), 
+        collection(db!, COMMENTS_COLLECTION), 
         where('videoId', '==', videoId),
         orderBy('createdAt', 'desc')
       );
@@ -45,8 +54,12 @@ export const commentService = {
 
   // Add a new comment
   addComment: async (commentData: Omit<CommentData, 'id' | 'createdAt'>): Promise<string> => {
+    if (!checkFirebaseInitialized()) {
+      throw new Error('Firebase is not initialized');
+    }
+    
     try {
-      const docRef = await addDoc(collection(db, COMMENTS_COLLECTION), {
+      const docRef = await addDoc(collection(db!, COMMENTS_COLLECTION), {
         ...commentData,
         createdAt: serverTimestamp(),
       });
@@ -59,8 +72,12 @@ export const commentService = {
 
   // Update a comment
   updateComment: async (commentId: string, commentData: Partial<CommentData>): Promise<void> => {
+    if (!checkFirebaseInitialized()) {
+      throw new Error('Firebase is not initialized');
+    }
+    
     try {
-      const docRef = doc(db, COMMENTS_COLLECTION, commentId);
+      const docRef = doc(db!, COMMENTS_COLLECTION, commentId);
       await updateDoc(docRef, { ...commentData });
     } catch (error) {
       console.error('Error updating comment:', error);
@@ -70,8 +87,12 @@ export const commentService = {
 
   // Delete a comment
   deleteComment: async (commentId: string): Promise<void> => {
+    if (!checkFirebaseInitialized()) {
+      throw new Error('Firebase is not initialized');
+    }
+    
     try {
-      const docRef = doc(db, COMMENTS_COLLECTION, commentId);
+      const docRef = doc(db!, COMMENTS_COLLECTION, commentId);
       await deleteDoc(docRef);
     } catch (error) {
       console.error('Error deleting comment:', error);

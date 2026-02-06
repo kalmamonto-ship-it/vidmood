@@ -4,7 +4,8 @@ import {
   createUserWithEmailAndPassword, 
   signOut, 
   User,
-  updateProfile
+  updateProfile,
+  Auth
 } from 'firebase/auth';
 import { 
   collection, 
@@ -14,18 +15,29 @@ import {
   where, 
   doc, 
   updateDoc, 
-  serverTimestamp 
+  serverTimestamp,
+  Firestore
 } from 'firebase/firestore';
 import { UserData } from '../types/user';
 
 const USERS_COLLECTION = 'users';
 
 export const authService = {
+  // Check if Firebase is initialized
+  checkFirebaseInitialized: (): boolean => {
+    return auth !== undefined && db !== undefined;
+  },
+
   // Login user
   login: async (email: string, password: string): Promise<User> => {
+    if (!auth || !db) {
+      throw new Error('Firebase is not initialized');
+    }
+    
     try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      return userCredential.user;
+      const authInstance = auth as Auth;
+      const userCredential = await signInWithEmailAndPassword(authInstance, email, password);
+      return userCredential.user!;
     } catch (error) {
       console.error('Error logging in:', error);
       throw error;
@@ -34,25 +46,33 @@ export const authService = {
 
   // Register new user
   register: async (email: string, password: string, displayName?: string): Promise<User> => {
+    if (!auth || !db) {
+      throw new Error('Firebase is not initialized');
+    }
+    
     try {
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const authInstance = auth as Auth;
+      const dbInstance = db as Firestore;
+      const userCredential = await createUserWithEmailAndPassword(authInstance, email, password);
       const user = userCredential.user;
       
       // Update profile in Firebase Auth
-      if (displayName) {
+      if (displayName && user) {
         await updateProfile(user, { displayName });
       }
       
       // Create user profile in Firestore
-      await addDoc(collection(db, USERS_COLLECTION), {
-        uid: user.uid,
-        email: user.email,
-        displayName: displayName || email.split('@')[0],
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp()
-      });
+      if (user) {
+        await addDoc(collection(dbInstance, USERS_COLLECTION), {
+          uid: user.uid,
+          email: user.email!,
+          displayName: displayName || email.split('@')[0],
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp()
+        });
+      }
       
-      return user;
+      return user!;
     } catch (error) {
       console.error('Error registering user:', error);
       throw error;
@@ -61,8 +81,13 @@ export const authService = {
 
   // Logout user
   logout: async (): Promise<void> => {
+    if (!auth || !db) {
+      throw new Error('Firebase is not initialized');
+    }
+    
     try {
-      await signOut(auth);
+      const authInstance = auth as Auth;
+      await signOut(authInstance);
     } catch (error) {
       console.error('Error logging out:', error);
       throw error;
@@ -71,25 +96,42 @@ export const authService = {
 
   // Get current authenticated user
   getCurrentUser: (): User | null => {
-    return auth.currentUser;
+    if (!auth || !db) {
+      return null;
+    }
+    return auth?.currentUser || null;
   },
 
   // Get user profile from Firestore
   getUserProfile: async (uid: string): Promise<UserData | null> => {
+    if (!auth || !db) {
+      throw new Error('Firebase is not initialized');
+    }
+    
     try {
-      const q = query(collection(db, USERS_COLLECTION), where('uid', '==', uid));
+      const dbInstance = db as Firestore;
+      const q = query(collection(dbInstance, USERS_COLLECTION), where('uid', '==', uid));
       const querySnapshot = await getDocs(q);
       
       if (!querySnapshot.empty) {
-        const userData = querySnapshot.docs[0].data();
+        const docSnapshot = querySnapshot.docs[0];
+        if (!docSnapshot) return null;
+        
+        const userData = docSnapshot.data();
         if (!userData) return null;
         
         return { 
-          id: querySnapshot.docs[0].id, 
+          id: docSnapshot.id, 
           ...userData, 
+          uid: userData.uid ?? '',
+          email: userData.email ?? '',
+          displayName: userData.displayName ?? '',
           createdAt: userData.createdAt && typeof userData.createdAt === 'object' && 'toDate' in userData.createdAt 
-            ? userData.createdAt.toDate() 
-            : userData.createdAt 
+            ? (userData.createdAt as any).toDate() 
+            : userData.createdAt ?? new Date(),
+          updatedAt: userData.updatedAt && typeof userData.updatedAt === 'object' && 'toDate' in userData.updatedAt
+            ? (userData.updatedAt as any).toDate()
+            : userData.updatedAt
         } as UserData;
       } else {
         return null;
@@ -102,8 +144,13 @@ export const authService = {
 
   // Update user profile in Firestore
   updateUserProfile: async (uid: string, userData: Partial<UserData>) => {
+    if (!auth || !db) {
+      throw new Error('Firebase is not initialized');
+    }
+    
     try {
-      const q = query(collection(db, USERS_COLLECTION), where('uid', '==', uid));
+      const dbInstance = db as Firestore;
+      const q = query(collection(dbInstance, USERS_COLLECTION), where('uid', '==', uid));
       const querySnapshot = await getDocs(q);
       
       if (!querySnapshot.empty) {
