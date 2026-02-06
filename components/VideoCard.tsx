@@ -20,9 +20,10 @@ interface VideoCardProps {
   isMuted: boolean;
   onMuteToggle: () => void;
   showComments: (videoId: string) => void;
+  requireAuth?: (action: () => void) => void; // Function to handle authentication requirement
 }
 
-export default function VideoCard({ video, isMuted, onMuteToggle, showComments }: VideoCardProps) {
+export default function VideoCard({ video, isMuted, onMuteToggle, showComments, requireAuth }: VideoCardProps) {
   const [isLiked, setIsLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(video.likes);
 
@@ -108,6 +109,7 @@ export default function VideoCard({ video, isMuted, onMuteToggle, showComments }
           onShare={handleShare}
           onMute={onMuteToggle}
           showComments={handleComment}
+          requireAuth={requireAuth}
         />
       </div>
     </div>

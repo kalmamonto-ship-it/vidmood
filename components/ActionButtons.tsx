@@ -1,6 +1,7 @@
 'use client';
 
 import { Heart, MessageCircle, Share, Volume2, VolumeX } from 'lucide-react';
+import { authService } from '@/services/authService';
 
 interface ActionButtonsProps {
   video: {
@@ -16,14 +17,50 @@ interface ActionButtonsProps {
   onShare: () => void;
   onMute: () => void;
   showComments: () => void;
+  requireAuth?: (action: () => void) => void; // Callback to handle authentication requirement
 }
 
-export default function ActionButtons({ video, onLike, onComment, onShare, onMute, showComments }: ActionButtonsProps) {
+export default function ActionButtons({ 
+  video, 
+  onLike, 
+  onComment, 
+  onShare, 
+  onMute, 
+  showComments,
+  requireAuth
+}: ActionButtonsProps) {
+  const handleLike = () => {
+    const currentUser = authService.getCurrentUser();
+    if (!currentUser && requireAuth) {
+      requireAuth(onLike);
+    } else {
+      onLike();
+    }
+  };
+
+  const handleComment = () => {
+    const currentUser = authService.getCurrentUser();
+    if (!currentUser && requireAuth) {
+      requireAuth(showComments);
+    } else {
+      showComments();
+    }
+  };
+
+  const handleShare = () => {
+    const currentUser = authService.getCurrentUser();
+    if (!currentUser && requireAuth) {
+      requireAuth(onShare);
+    } else {
+      onShare();
+    }
+  };
+
   return (
     <div className="flex flex-col items-center space-y-6">
       {/* Like Button */}
       <button 
-        onClick={onLike}
+        onClick={handleLike}
         className="flex flex-col items-center group"
       >
         <div className={`p-3 rounded-full transition-all duration-300 ${
@@ -42,7 +79,7 @@ export default function ActionButtons({ video, onLike, onComment, onShare, onMut
 
       {/* Comment Button */}
       <button 
-        onClick={showComments}
+        onClick={handleComment}
         className="flex flex-col items-center group"
       >
         <div className="p-3 rounded-full bg-black/30 text-white backdrop-blur-sm hover:bg-white/20 transition-all duration-300 hover:scale-105">
@@ -55,7 +92,7 @@ export default function ActionButtons({ video, onLike, onComment, onShare, onMut
 
       {/* Share Button */}
       <button 
-        onClick={onShare}
+        onClick={handleShare}
         className="flex flex-col items-center group"
       >
         <div className="p-3 rounded-full bg-black/30 text-white backdrop-blur-sm hover:bg-white/20 transition-all duration-300 hover:scale-105">

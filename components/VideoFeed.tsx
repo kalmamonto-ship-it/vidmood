@@ -1,136 +1,93 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { DatabaseService } from '../services/databaseService';
+import { useState, useEffect } from 'react';
+import { DatabaseService } from '@/services/databaseService';
 import VideoCard from './VideoCard';
 
-interface VideoData {
-  id: string;
-  url: string;
-  thumbnail?: string;
-  description: string;
-  mood: string;
-  userId?: string;
-  username: string;
-  userAvatar: string;
-  music: string;
-  likes: number;
-  comments: number;
-  shares: number;
-  createdAt: Date;
-  status: 'pending' | 'processing' | 'published';
-}
-
 interface VideoFeedProps {
-  initialVideos?: VideoData[];
-  moodFilter?: string;
-  showComments?: (videoId: string) => void;
+  requireAuth?: (action: () => void) => void; // Callback to handle authentication requirement
 }
 
-export default function VideoFeed({ initialVideos = [], moodFilter, showComments }: VideoFeedProps) {
-  const [videos, setVideos] = useState<VideoData[]>(initialVideos);
-  const [loading, setLoading] = useState(false);
-  const [hasMore, setHasMore] = useState(true);
-  const [lastVisible, setLastVisible] = useState<any>(null);
-  const observer = useRef<IntersectionObserver | null>(null);
-  
-  const lastVideoElementRef = useCallback((node: HTMLDivElement) => {
-    if (loading) return;
-    if (observer.current) observer.current.disconnect();
-    
-    observer.current = new IntersectionObserver(entries => {
-      if (entries[0].isIntersecting && hasMore) {
-        loadMoreVideos();
-      }
-    });
-    
-    if (node) observer.current.observe(node);
-  }, [loading, hasMore]);
-  
-  const loadVideos = async () => {
-    try {
-      setLoading(true);
-      let loadedVideos: VideoData[];
-      
-      if (moodFilter) {
-        loadedVideos = await DatabaseService.getVideosByMood(moodFilter, 10);
-      } else {
-        const result = await DatabaseService.getVideosWithPagination(null, 10);
-        loadedVideos = result.videos;
-        setLastVisible(result.lastVisible);
-      }
-      
-      setVideos(loadedVideos);
-    } catch (error) {
-      console.error('Error loading videos:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-  
-  const loadMoreVideos = async () => {
-    if (loading || !hasMore) return;
-    
-    try {
-      setLoading(true);
-      
-      const result = await DatabaseService.getVideosWithPagination(lastVisible, 10);
-      const newVideos = result.videos;
-      
-      if (newVideos.length === 0) {
-        setHasMore(false);
-      } else {
-        setVideos(prev => [...prev, ...newVideos]);
-        setLastVisible(result.lastVisible);
-      }
-    } catch (error) {
-      console.error('Error loading more videos:', error);
-      setHasMore(false);
-    } finally {
-      setLoading(false);
-    }
-  };
-  
+export default function VideoFeed({ requireAuth }: VideoFeedProps) {
+  const [videos, setVideos] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [isMuted, setIsMuted] = useState(true);
+
   useEffect(() => {
-    loadVideos();
-  }, [moodFilter]);
-  
+    const fetchVideos = async () => {
+      try {
+        // Fetch all videos for public feed
+        const videoData = await DatabaseService.getAllVideos(20);
+        setVideos(videoData);
+      } catch (err) {
+        setError('Failed to load videos');
+        console.error('Error fetching videos:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchVideos();
+
+    // Subscribe to real-time updates
+    const unsubscribe = DatabaseService.subscribeToVideoFeed((updatedVideos) => {
+      setVideos(updatedVideos);
+    });
+
+    // Cleanup subscription on unmount
+    return () => {
+      unsubscribe();
+    };
+  }, []);
+
+  const toggleMute = () => {
+    setIsMuted(!isMuted);
+  };
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="text-center py-8">
+        <p className="text-red-500">{error}</p>
+        <button 
+          onClick={() => window.location.reload()}
+          className="mt-4 px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700"
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
+
+  if (videos.length === 0) {
+    return (
+      <div className="text-center py-12">
+        <p className="text-white/70">No videos available yet</p>
+        <p className="text-white/50 text-sm mt-2">Be the first to upload a video!</p>
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-4 pb-20">
-      {videos.map((video, index) => {
-        if (videos.length === index + 1) {
-          return (
-            <div ref={lastVideoElementRef} key={video.id}>
-              <VideoCard 
-                video={video} 
-                isMuted={false} 
-                onMuteToggle={() => {}} 
-                showComments={showComments || (() => {})} 
-              />
-            </div>
-          );
-        } else {
-          return <VideoCard 
-            key={video.id} 
-            video={video} 
-            isMuted={false} 
-            onMuteToggle={() => {}} 
-            showComments={showComments || (() => {})} 
-          />;
-        }
-      })}
-      
-      {loading && (
-        <div className="flex justify-center py-8">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-        </div>
-      )}
-      
-      {!hasMore && videos.length > 0 && (
-        <div className="text-center text-gray-500 py-4">
-          You've reached the end!
-        </div>
-      )}
+    <div className="pb-16">
+      {videos.map((video) => (
+        <VideoCard 
+          key={video.id} 
+          video={video} 
+          isMuted={isMuted} 
+          onMuteToggle={toggleMute} 
+          showComments={() => {}} // Will be handled by parent component
+          requireAuth={requireAuth}
+        />
+      ))}
     </div>
   );
 }
