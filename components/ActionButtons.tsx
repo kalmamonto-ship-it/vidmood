@@ -15,9 +15,10 @@ interface ActionButtonsProps {
   onComment: () => void;
   onShare: () => void;
   onMute: () => void;
+  showComments: () => void;
 }
 
-export default function ActionButtons({ video, onLike, onComment, onShare, onMute }: ActionButtonsProps) {
+export default function ActionButtons({ video, onLike, onComment, onShare, onMute, showComments }: ActionButtonsProps) {
   return (
     <div className="flex flex-col items-center space-y-6">
       {/* Like Button */}
@@ -41,7 +42,7 @@ export default function ActionButtons({ video, onLike, onComment, onShare, onMut
 
       {/* Comment Button */}
       <button 
-        onClick={onComment}
+        onClick={showComments}
         className="flex flex-col items-center group"
       >
         <div className="p-3 rounded-full bg-black/30 text-white backdrop-blur-sm hover:bg-white/20 transition-all duration-300 hover:scale-105">

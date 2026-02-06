@@ -19,9 +19,10 @@ interface VideoCardProps {
   };
   isMuted: boolean;
   onMuteToggle: () => void;
+  showComments: (videoId: string) => void;
 }
 
-export default function VideoCard({ video, isMuted, onMuteToggle }: VideoCardProps) {
+export default function VideoCard({ video, isMuted, onMuteToggle, showComments }: VideoCardProps) {
   const [isLiked, setIsLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(video.likes);
 
@@ -31,7 +32,7 @@ export default function VideoCard({ video, isMuted, onMuteToggle }: VideoCardPro
   };
 
   const handleComment = () => {
-    console.log('Comment on video:', video.id);
+    showComments(video.id);
   };
 
   const handleShare = () => {
@@ -103,9 +104,10 @@ export default function VideoCard({ video, isMuted, onMuteToggle }: VideoCardPro
             isMuted
           }}
           onLike={handleLike}
-          onComment={handleComment}
+          onComment={() => {}} // Placeholder since we're using showComments
           onShare={handleShare}
           onMute={onMuteToggle}
+          showComments={handleComment}
         />
       </div>
     </div>

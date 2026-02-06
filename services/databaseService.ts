@@ -433,4 +433,68 @@ export class DatabaseService {
       return false;
     }
   }
+
+  // Get videos with pagination for infinite scroll
+  static async getVideosWithPagination(lastVisible: any, limitCount: number = 10): Promise<{ videos: VideoData[], lastVisible: any }> {
+    try {
+      let q;
+      if (lastVisible) {
+        q = query(
+          collection(db, 'videos'),
+          where('status', '==', 'published'),
+          orderBy('createdAt', 'desc'),
+          limit(limitCount)
+        );
+      } else {
+        q = query(
+          collection(db, 'videos'),
+          where('status', '==', 'published'),
+          orderBy('createdAt', 'desc'),
+          limit(limitCount)
+        );
+      }
+      
+      const querySnapshot = await getDocs(q);
+      
+      const videos = querySnapshot.docs.map((doc) => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          ...data,
+          createdAt: data?.createdAt?.toDate ? data.createdAt.toDate() : new Date(),
+        } as VideoData;
+      });
+      
+      const lastDoc = querySnapshot.docs[querySnapshot.docs.length - 1];
+      
+      return { videos, lastVisible: lastDoc };
+    } catch (error) {
+      console.error('Error fetching videos with pagination:', error);
+      throw new Error('Failed to fetch videos');
+    }
+  }
+
+  // Subscribe to real-time video updates for feed
+  static subscribeToVideoFeed(callback: RealTimeUpdateCallback): Unsubscribe {
+    const q = query(
+      collection(db, 'videos'),
+      where('status', '==', 'published'),
+      orderBy('createdAt', 'desc')
+    );
+    
+    return onSnapshot(q, (snapshot) => {
+      const videos: VideoData[] = [];
+      snapshot.docChanges().forEach((change) => {
+        if (change.type === 'added' || change.type === 'modified') {
+          const data = change.doc.data();
+          videos.push({
+            id: change.doc.id,
+            ...data,
+            createdAt: data.createdAt?.toDate() || new Date(),
+          } as VideoData);
+        }
+      });
+      callback(videos);
+    });
+  }
 }

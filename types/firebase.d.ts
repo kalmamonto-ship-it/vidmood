@@ -91,6 +91,31 @@ declare module 'firebase/auth' {
   export function signOut(auth: Auth): Promise<void>;
   export function signInAnonymously(auth: Auth): Promise<UserCredential>;
   
+  // Additional auth functions
+  export function signInWithEmailAndPassword(auth: Auth, email: string, password: string): Promise<UserCredential>;
+  export function createUserWithEmailAndPassword(auth: Auth, email: string, password: string): Promise<UserCredential>;
+  export function updateProfile(user: User | null, profile: { displayName?: string | null; photoURL?: string | null; }): Promise<void>;
+  export function sendPasswordResetEmail(auth: Auth, email: string): Promise<void>;
+  export function confirmPasswordReset(auth: Auth, oobCode: string, newPassword: string): Promise<void>;
+  export function applyActionCode(auth: Auth, oobCode: string): Promise<void>;
+  export function checkActionCode(auth: Auth, oobCode: string): Promise<ActionCodeInfo>;
+  
+  export interface ActionCodeInfo {
+    data: {
+      email?: string;
+      fromEmail?: string;
+      multiFactorInfo?: MultiFactorInfo | null;
+      previousEmail?: string;
+    };
+    operation: string;
+  }
+  
+  export interface MultiFactorInfo {
+    displayName: string | null;
+    enrollmentTime: string;
+    factorId: string;
+  }
+  
   export interface UserCredential {
     user: User;
     providerId: string | null;

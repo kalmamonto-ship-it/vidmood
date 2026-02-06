@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Upload, X, Camera } from 'lucide-react';
 import { DatabaseService } from '@/services/databaseService';
+import { authService } from '@/services/authService';
 
 interface VideoUploadProps {
   onMediaUpload: (mediaData: any) => void;
@@ -37,6 +38,17 @@ export default function VideoUpload({ onMediaUpload }: VideoUploadProps) {
     setIsUploading(true);
     setUploadProgress(0);
     
+    // Get current user
+    const currentUser = authService.getCurrentUser();
+    if (!currentUser) {
+      alert('Please login to upload media');
+      setIsUploading(false);
+      return;
+    }
+    
+    // Get user profile
+    const userProfile = await authService.getUserProfile(currentUser.uid);
+    
     try {
       // Simulate progress for better UX
       const progressInterval = setInterval(() => {
@@ -51,16 +63,17 @@ export default function VideoUpload({ onMediaUpload }: VideoUploadProps) {
 
       if (mediaType === 'video') {
         // Upload video to Firebase Storage
-        const videoUrl = await DatabaseService.uploadVideoFile(file, 'current-user-id');
+        const videoUrl = await DatabaseService.uploadVideoFile(file, currentUser.uid);
         
         // Save video metadata to Firestore
         const videoId = await DatabaseService.saveVideo({
           url: videoUrl,
           description,
           mood: selectedMood,
-          username: 'you',
+          userId: currentUser.uid,
+          username: userProfile?.displayName || currentUser.email?.split('@')[0] || 'you',
           userAvatar: '/default-avatar.png',
-          music: 'Original Sound - you', // Added required music property
+          music: 'Original Sound', // Added required music property
           likes: 0,
           comments: 0,
           shares: 0,
@@ -77,7 +90,7 @@ export default function VideoUpload({ onMediaUpload }: VideoUploadProps) {
           description,
           mood: selectedMood,
           user: {
-            username: 'you',
+            username: userProfile?.displayName || currentUser.email?.split('@')[0] || 'you',
             avatar: '/default-avatar.png'
           },
           likes: 0,
@@ -89,14 +102,15 @@ export default function VideoUpload({ onMediaUpload }: VideoUploadProps) {
         onMediaUpload(videoData);
       } else if (mediaType === 'photo') {
         // Upload photo to Firebase Storage
-        const photoUrl = await DatabaseService.uploadPhotoFile(file, 'current-user-id');
+        const photoUrl = await DatabaseService.uploadPhotoFile(file, currentUser.uid);
         
         // Save photo metadata to Firestore
         const photoId = await DatabaseService.savePhoto({
           url: photoUrl,
           description,
           mood: selectedMood,
-          username: 'you',
+          userId: currentUser.uid,
+          username: userProfile?.displayName || currentUser.email?.split('@')[0] || 'you',
           userAvatar: '/default-avatar.png',
           likes: 0,
           comments: 0,
@@ -114,7 +128,7 @@ export default function VideoUpload({ onMediaUpload }: VideoUploadProps) {
           description,
           mood: selectedMood,
           user: {
-            username: 'you',
+            username: userProfile?.displayName || currentUser.email?.split('@')[0] || 'you',
             avatar: '/default-avatar.png'
           },
           likes: 0,
